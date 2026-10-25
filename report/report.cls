@@ -24,6 +24,14 @@
 \RequirePackage{circuitikz}
 \RequirePackage{xcolor} % Required before defining colors
 \RequirePackage{hyperref}
+\RequirePackage{scalerel}
+\RequirePackage{pict2e}
+\RequirePackage{tkz-euclide}
+
+\usetikzlibrary{patterns, arrows.meta}
+\usetikzlibrary{shadows}
+\usetikzlibrary{external}
+
 
 \nonstopmode
 \pgfplotsset{compat=1.9}

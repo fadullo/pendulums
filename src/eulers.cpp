@@ -1,55 +1,104 @@
+#include <iostream>
 #include <vector>
 #include <cmath>
+#include <utility>
+#include <functional>
 
-// The constants of our simulation
+// List of constants
 double g = 9.81;
-double L = 1.0;
 
-struct result {
-     std::vector<double> t;
-     std::vector<double> phi;
-     std::vector<double> omega;
-     std::vector<double> error;
+struct vector
+{
+     double x, y, z;
+     vector operator+(const vector& other) const
+     {
+          return {x + other.x, y + other.y, z + other.z};
+     }
+     vector operator*(double scalar) const
+     {
+          return {x * scalar, y * scalar, z * scalar};
+     }
+     vector operator-()
+     {
+          return {-x, -y, -z};
+     };
+     vector operator+=(const vector& other)
+     {
+          x += other.x;
+          y += other.y;
+          z += other.z;
+          return *this;
+     }
+     void print() const {
+          std::cout << "(" << x << ", " << y << ", " << z << ")";
+     }
 };
 
-result forward_euler(int n, double tf, double ic[])
-     // n: number of steps
-     // dt: step size
-     // ic: initial conditions, ic[0] is for phi, ic[1] is for omega
+struct state
 {
-     std::vector<double> t(n+1);
-     std::vector<double> phi(n+1);
-     std::vector<double> omega(n+1);
-     std::vector<double> error(n+1);
+     vector position;
+     vector velocity;
+     double t;
+     std::function<std::pair<vector, vector>(vector, vector)> force;
+};
 
-     double dt = tf/n;
+struct result
+{
+     std::vector<double> t;
+     std::vector<vector> p;
+     std::vector<vector> v;
+};
 
-     // Setting the initial conditions
-     t[0] = 0.0;
-     phi[0] = ic[0];
-     omega[0] = ic[1];
+result euler(std::string method, state iState, double dt, double tmax)
+{
+     std::vector<double> t = {iState.t};
+     std::vector<vector> p = {iState.position};
+     std::vector<vector> v = {iState.velocity};
 
-     double energy0 = 0.5 * L * L * omega[0] * omega[0] + g * L * (1.0 - cos(phi[0]));
-     error[0] = 0.0;
+     state cState = iState;
 
-     // Using euler's method
-     for (int j = 0; j < n; j++)
+     while (cState.t < tmax)
      {
-          phi[j+1] = phi[j] + dt*omega[j];
-          omega[j+1] = omega[j] + dt*(-(g/L)*sin(phi[j]));
-          t[j+1] = t[j] + dt;
+          auto [dpdt, dvdt] = cState.force(cState.position, cState.velocity);
 
-          double energy = 0.5 * L * L * omega[j+1] * omega[j+1] + g * L * (1.0 - cos(phi[j+1]));
-          error[j+1] = energy - energy0;
+          if (method == "forward")
+          {
+               cState.position += dpdt * dt;
+               cState.velocity += dvdt * dt;
+          }
+          else if (method == "semi-implicit")
+          {
+               cState.velocity += dvdt * dt;
+               cState.position += cState.velocity * dt;
+          }
+
+          cState.t += dt;
+
+          t.push_back(cState.t);
+          p.push_back(cState.position);
+          v.push_back(cState.velocity);
      }
-     return {t, phi, omega, error};
+
+     return {t, p, v};
 }
 
-result backward_euler()
+std::pair<vector, vector> gravity(vector position, vector velocity)
 {
-     return {};
+     vector dpdt = velocity;
+     vector dvdt = {0.0, -9.81, 0.0};
+     return {dpdt, dvdt};
 }
-result semi_implicit_euler()
-{
-     return {};
+
+// std::function< ReturnType (Input 1, Input 2) >
+
+std::function<std::pair<vector, vector>(vector, vector)> pendulum(double l) {
+
+     // [capture] ( Parameters ) -> ReturnType {}
+
+    return [l](vector position, vector velocity) -> std::pair<vector, vector> {
+        vector dpdt = velocity;
+        double accel = -(g / l) * std::sin(position.x);
+        vector dvdt = {accel, 0.0, 0.0};
+        return {dpdt, dvdt};
+    };
 }
