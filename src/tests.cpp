@@ -26,10 +26,11 @@ void dataset(const std::string& filename, const result& data)
 
 int main()
 {
-     double tf = 20.0;
-     double dt = 0.1;
+     double tf = 50.0;
+     double dt = 0.01;
 
      // States take the input (initialPosition, iniitialVelocity, startTime, force)
+
      // An object thrown straight up
 
      state initial{{0.0, 0.0, 0.0}, {0.0, 10.0, 0.0}, 0.0, gravity};
@@ -40,12 +41,15 @@ int main()
      dataset("data/semi_implicit.dat", semi_data);
      std::cout << "Datasets successfully generated in 'data/' folder.\n";
 
+     // Pendulum
+
      state pInitial{{1.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, 0.0, pendulum(1.5)};
 
      result p_forward = euler("forward", pInitial, dt, tf);
-     dataset("data/pendulum_forward.dat", p_forward);
+     dataset("data/pendulum_forward_undamped.dat", p_forward);
 
      result p_semi = euler("semi-implicit", pInitial, dt, tf);
-     dataset("data/pendulum_semi_implicit.dat", p_semi);
+     dataset("data/pendulum_semi_implicit_undamped.dat", p_semi);
+
      return 0;
 }
